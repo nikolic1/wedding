@@ -59,6 +59,14 @@
   .pick input { display: none; }
   .pick svg { width: 22px; height: 22px; }
   .pick.busy { opacity: .6; pointer-events: none; }
+  .gallery {
+    margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 14px 20px; border-radius: 16px; position: relative; z-index: 1;
+    font: 500 .98rem 'Jost', sans-serif; letter-spacing: .04em; text-decoration: none;
+    color: var(--gold-deep); background: transparent; border: 1.5px solid var(--gold); transition: background .15s;
+  }
+  .gallery:active { background: #f6eedf; }
+  .gallery svg { width: 20px; height: 20px; }
   .hint { font-size: .8rem; color: var(--muted); margin: 12px 0 0; }
 
   .progress { margin: 26px 0 0; display: none; }
@@ -115,6 +123,11 @@
     </label>
     <p class="hint" id="hint" data-i18n="hint">Fotografije i videi · možete odabrati više odjednom</p>
 
+    <a class="gallery" id="gallery" href="https://drive.google.com/drive/folders/1yGZqRNLENk3LE0dD8VPbUTu3nzMqrXq0" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg>
+      <span data-i18n="gallery">Pogledajte galeriju</span>
+    </a>
+
     <div class="progress" id="progress">
       <div class="bar"><i id="barFill"></i></div>
       <p id="status"></p>
@@ -136,7 +149,7 @@
   const T = HR ? {
     eyebrow: 'Vjenčanje', lead: 'Podijelite s nama trenutke koje ste uhvatili',
     pick: 'Odaberite fotografije', hint: 'Fotografije i videi · možete odabrati više odjednom',
-    footer: 'Hvala što slavite s nama', table: 'Stol',
+    footer: 'Hvala što slavite s nama', table: 'Stol', gallery: 'Pogledajte sve fotografije',
     uploading: (i, n) => `Poslano ${i} od ${n}… molimo ne zatvarajte stranicu`,
     done: (n) => `Hvala vam! Poslano: ${n} ♡`,
     partial: (d, f) => `Poslano ${d}, neuspješno ${f}. Pokušajte ponovno s onima koje nisu prošle.`,
@@ -145,7 +158,7 @@
   } : {
     eyebrow: 'Our wedding', lead: 'Share the moments you captured with us',
     pick: 'Choose photos', hint: 'Photos & videos · you can pick several at once',
-    footer: 'Thank you for celebrating with us', table: 'Table',
+    footer: 'Thank you for celebrating with us', table: 'Table', gallery: 'See all photos',
     uploading: (i, n) => `Sent ${i} of ${n}… please keep this page open`,
     done: (n) => `Thank you! ${n} sent ♡`,
     partial: (d, f) => `${d} sent, ${f} failed. Please try the failed ones again.`,
@@ -163,7 +176,7 @@
 
   if (table) { $('tableTag').textContent = `${T.table} ${table}`; $('tableTag').hidden = false; }
   if (!key) {
-    $('pick').hidden = true; $('hint').hidden = true;
+    $('pick').hidden = true; $('hint').hidden = true; $('gallery').hidden = true;
     $('progress').insertAdjacentHTML('beforebegin', `<p class="bad">${T.noKey}</p>`);
   }
 
