@@ -16,6 +16,7 @@
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; }
+  [hidden] { display: none !important; }
   body {
     min-height: 100vh; color: var(--ink); font-family: 'Jost', system-ui, sans-serif; font-weight: 300;
     background:
@@ -109,10 +110,10 @@
 
     <label class="pick" id="pick">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-      <span data-i18n="pick">Odaberite fotografije i videe</span>
+      <span data-i18n="pick">Odaberite fotografije</span>
       <input type="file" id="files" accept="image/*,video/*" multiple>
     </label>
-    <p class="hint" id="hint" data-i18n="hint">Možete odabrati više datoteka odjednom</p>
+    <p class="hint" id="hint" data-i18n="hint">Fotografije i videi · možete odabrati više odjednom</p>
 
     <div class="progress" id="progress">
       <div class="bar"><i id="barFill"></i></div>
@@ -131,7 +132,7 @@
   const HR = /^(hr|bs|sr|sh)/i.test(navigator.language || '');
   const T = HR ? {
     eyebrow: 'Vjenčanje', lead: 'Podijelite s nama trenutke koje ste uhvatili',
-    pick: 'Odaberite fotografije i videe', hint: 'Možete odabrati više datoteka odjednom',
+    pick: 'Odaberite fotografije', hint: 'Fotografije i videi · možete odabrati više odjednom',
     footer: 'Hvala što slavite s nama', table: 'Stol',
     uploading: (i, n) => `Šaljem ${i} od ${n}… molimo ne zatvarajte stranicu`,
     done: (n) => `Hvala vam! Poslano: ${n} ♡`,
@@ -140,7 +141,7 @@
     noKey: 'Molimo skenirajte QR kod na svom stolu kako biste otvorili ovu stranicu.',
   } : {
     eyebrow: 'Our wedding', lead: 'Share the moments you captured with us',
-    pick: 'Choose photos & videos', hint: 'You can select several at once',
+    pick: 'Choose photos', hint: 'Photos & videos · you can pick several at once',
     footer: 'Thank you for celebrating with us', table: 'Table',
     uploading: (i, n) => `Sending ${i} of ${n}… please keep this page open`,
     done: (n) => `Thank you! ${n} sent ♡`,
