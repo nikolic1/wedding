@@ -127,6 +127,9 @@
 <script>
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxOCgH8g0To7cO6rYyrjHRfTW9-GF4bXlnfjw5tXID_NdVOM9Xv6aV7KdW0G4-dyB6kfw/exec';
   const MAX_BYTES = 40 * 1024 * 1024;
+  const PARALLEL = 3;          // files sent at the same time
+  const SHRINK_PHOTOS = true;  // false = always send untouched originals (slower)
+  const MAX_SIDE = 3000;       // px, longest side after shrinking (~20x30 cm print quality)
 
   // Croatian for hr/bs/sr phones, English for everyone else
   const HR = /^(hr|bs|sr|sh)/i.test(navigator.language || '');
@@ -134,7 +137,7 @@
     eyebrow: 'Vjenčanje', lead: 'Podijelite s nama trenutke koje ste uhvatili',
     pick: 'Odaberite fotografije', hint: 'Fotografije i videi · možete odabrati više odjednom',
     footer: 'Hvala što slavite s nama', table: 'Stol',
-    uploading: (i, n) => `Šaljem ${i} od ${n}… molimo ne zatvarajte stranicu`,
+    uploading: (i, n) => `Poslano ${i} od ${n}… molimo ne zatvarajte stranicu`,
     done: (n) => `Hvala vam! Poslano: ${n} ♡`,
     partial: (d, f) => `Poslano ${d}, neuspješno ${f}. Pokušajte ponovno s onima koje nisu prošle.`,
     tooBig: 'Datoteka je prevelika (max 40 MB)', more: 'Dodajte još',
@@ -143,7 +146,7 @@
     eyebrow: 'Our wedding', lead: 'Share the moments you captured with us',
     pick: 'Choose photos', hint: 'Photos & videos · you can pick several at once',
     footer: 'Thank you for celebrating with us', table: 'Table',
-    uploading: (i, n) => `Sending ${i} of ${n}… please keep this page open`,
+    uploading: (i, n) => `Sent ${i} of ${n}… please keep this page open`,
     done: (n) => `Thank you! ${n} sent ♡`,
     partial: (d, f) => `${d} sent, ${f} failed. Please try the failed ones again.`,
     tooBig: 'File too large (max 40 MB)', more: 'Add more',
@@ -176,22 +179,29 @@
     const tiles = files.map(addTile);
     let done = 0, failed = 0;
 
-    // One file at a time: gentle on phone memory and on Apps Script limits
-    for (let i = 0; i < files.length; i++) {
-      status.textContent = T.uploading(i + 1, files.length);
-      const tile = tiles[i];
-      let ok = false;
-      if (files[i].size > MAX_BYTES) {
-        tile.title = T.tooBig;
-      } else {
+    status.textContent = T.uploading(0, files.length);
+    let next = 0;
+
+    // A few workers pull files off the queue so several upload at once
+    async function worker() {
+      while (next < files.length) {
+        const i = next++;
+        const tile = tiles[i];
         tile.className = 'tile up';
-        ok = await uploadWithRetry(files[i]);
+        let ok = false;
+        try {
+          const file = await shrink(files[i]);
+          if (file.size > MAX_BYTES) tile.title = T.tooBig;
+          else ok = await uploadWithRetry(file);
+        } catch (_) { /* counted as failed */ }
+        tile.className = 'tile ' + (ok ? 'ok' : 'err');
+        tile.querySelector('.badge span').textContent = ok ? '✓' : '!';
+        ok ? done++ : failed++;
+        status.textContent = T.uploading(done + failed, files.length);
+        $('barFill').style.width = ((done + failed) / files.length * 100) + '%';
       }
-      tile.className = 'tile ' + (ok ? 'ok' : 'err');
-      tile.querySelector('.badge span').textContent = ok ? '✓' : '!';
-      ok ? done++ : failed++;
-      $('barFill').style.width = ((i + 1) / files.length * 100) + '%';
     }
+    await Promise.all(Array.from({ length: Math.min(PARALLEL, files.length) }, worker));
 
     if (failed) { status.textContent = T.partial(done, failed); }
     else { status.textContent = T.done(done); status.className = 'done'; }
@@ -211,6 +221,26 @@
     tile.prepend(media);
     $('grid').prepend(tile);
     return tile;
+  }
+
+  // Downscale big photos to a high-quality JPEG; anything else (videos, small or undecodable files) goes as-is
+  async function shrink(file) {
+    if (!SHRINK_PHOTOS || !file.type.startsWith('image/') || file.type === 'image/gif' || file.size < 1.5 * 1024 * 1024) return file;
+    try {
+      const img = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      const scale = Math.min(1, MAX_SIDE / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      img.close();
+      const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.9));
+      canvas.width = canvas.height = 0; // free phone memory right away
+      if (!blob || blob.size >= file.size) return file;
+      return new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' });
+    } catch (_) {
+      return file;
+    }
   }
 
   async function uploadWithRetry(file) {
